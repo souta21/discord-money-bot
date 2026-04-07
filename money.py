@@ -1,0 +1,136 @@
+import discord
+import gspread
+import datetime
+import re
+import os
+from google.oauth2.service_account import Credentials
+from dotenv import load_dotenv
+load_dotenv()
+
+TOKEN = os.getenv("DISCORD_TOKEN")
+
+intents = discord.Intents.default()
+intents.message_content = True 
+client = discord.Client(intents=intents)
+
+# スコープ設定
+SCOPES = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+# 認証（oauth2clientを使わない）
+credentials = Credentials.from_service_account_file(
+    "credentials.json",
+    scopes=SCOPES
+)
+
+gc = gspread.authorize(credentials)
+
+# スプレッドシートを開く
+SPREADSHEET_KEY = os.getenv("SPREADSHEET_KEY")
+workbook = gc.open_by_key(SPREADSHEET_KEY)
+
+worksheet = workbook.sheet1
+
+def monthcheck():
+    print("monthcheck開始")
+
+    worksheet_list = workbook.worksheets()
+    today = datetime.date.today().strftime('%Y%m')
+
+    exist = False
+
+    for current in worksheet_list:
+        if current.title == today:
+            exist = True
+
+    if exist == False:
+        print("新しい月シート作成")
+
+        workbook.add_worksheet(
+            title=today,
+            rows=100,
+            cols=6
+        )
+
+        newsheet = workbook.worksheet(today)
+
+        newsheet.update('A1', [['日付']])
+        newsheet.update('B1', [['名目']])
+        newsheet.update('C1', [['支出']])
+        newsheet.update('D1', [['支払者']])
+
+    print("worksheet取得:", today)
+
+    return workbook.worksheet(today)
+
+def add_spending(worksheet, name, amount,user):#引数で受け取ったシートに引数で受け取った支出を記録する関数
+    lists = worksheet.get_all_values()  #シートの内容を配列で取得
+    rows = len(lists) + 1               #入力されているデータの数を取得し、末端に書き込むときのインデックスとして利用する為+1する
+    worksheet.update_cell(rows,1,datetime.date.today().strftime('%Y/%m/%d'))  #日付をセルに入力
+    worksheet.update_cell(rows,2,name)  #引数で受け取った名前をセルに入力
+    worksheet.update_cell(rows,3,amount)#引数で受け取った金額をセルに入力
+    worksheet.update_cell(rows,4,user)#記入者の名前を入力
+
+@client.event
+async def on_message(message):          #メッセージを受け取ったときの挙動
+
+    print("メッセージ受信:", message.content)
+    print("チャンネル:", type(message.channel))
+
+    if message.author.bot :             #拾ったメッセージがBotからのメッセージだったら(=Bot自身の発言だったら弾く)
+        return
+
+    worksheet = monthcheck()
+
+    # -----------------------------
+    # 支出入力処理
+    # 形式: 支出,昼食,1200
+    # -----------------------------
+
+    receipt = re.split(r'[,\s]+', message.content.strip())
+
+    # 入力形式チェック
+    if len(receipt) < 1 or len(receipt) > 3:
+        await message.channel.send(
+            '入力形式が違います。\n例: 支出,昼食,1200'
+        )
+        return
+
+    # 円を削除（例: 1200円 → 1200）
+    receipt[1] = receipt[1].replace('円', '')
+
+    # 金額チェック
+    try:
+        amount = int(receipt[1])
+    except ValueError:
+        await message.channel.send(
+            '金額は数字で入力してください。'
+        )
+        return
+
+    # -----------------------------
+    # 支出処理
+    # -----------------------------
+
+    name = receipt[0]
+    user = message.author.display_name
+    if len(receipt) == 3:
+        user = receipt[2]
+
+    add_spending(
+        worksheet,
+        name,
+        amount,
+        user
+    )
+
+    await message.channel.send(
+        f'{user} による {name} の支出 {amount}円 を記録しました。'
+    )
+
+    return
+
+
+client.run(TOKEN)
