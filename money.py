@@ -9,7 +9,6 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
-# ⭐ これを追加（最重要）
 if credentials_json:
     with open("credentials.json", "w") as f:
         f.write(credentials_json)
@@ -59,7 +58,7 @@ def monthcheck():
         workbook.add_worksheet(
             title=today,
             rows=100,
-            cols=6
+            cols=7
         )
 
         newsheet = workbook.worksheet(today)
@@ -68,6 +67,15 @@ def monthcheck():
         newsheet.update('B1', [['名目']])
         newsheet.update('C1', [['支出']])
         newsheet.update('D1', [['支払者']])
+        newsheet.update('F1', [['そうた']])
+        newsheet.update('F2', [['こはく']])
+        newsheet.update('F3', [['差額']])
+        newsheet.update('F4', [['精算額']])
+        newsheet.update('G1', [['合計']])
+        newsheet.update("G2", '=SUMIF(D:D,"そうた",C:C)')
+        newsheet.update("G3", '=SUMIF(D:D,"こはく",C:C)')
+        newsheet.update("G4", "=G2-G3")
+        newsheet.update("G5", "=ABS(G4)/2")
 
     print("worksheet取得:", today)
 
