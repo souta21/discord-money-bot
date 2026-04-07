@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
 intents = discord.Intents.default()
 intents.message_content = True 
