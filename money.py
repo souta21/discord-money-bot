@@ -9,6 +9,12 @@ load_dotenv()
 TOKEN = os.getenv("DISCORD_TOKEN")
 credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
+# ⭐ これを追加（最重要）
+if credentials_json:
+    with open("credentials.json", "w") as f:
+        f.write(credentials_json)
+
+
 from google.oauth2.service_account import Credentials
 
 intents = discord.Intents.default()
