@@ -162,6 +162,13 @@ async def on_message(message):          #メッセージを受け取ったとき
     if len(receipt) == 3:
         user = receipt[2]
 
+        add_spending(
+                worksheet,
+                name,
+                amount,
+                user
+            )
+
         if user in ['そうただけ', 'こはくだけ']:
             # 完了メッセージ
             await message.channel.send(
@@ -169,13 +176,6 @@ async def on_message(message):          #メッセージを受け取ったとき
             )
         
         else :
-            add_spending(
-                worksheet,
-                name,
-                amount,
-                user
-            )
-
             # 完了メッセージ
             await message.channel.send(
                 f'{user} による {name} の支出 {amount}円 を記録しました。'
