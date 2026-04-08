@@ -40,6 +40,23 @@ workbook = gc.open_by_key(SPREADSHEET_KEY)
 
 worksheet = workbook.sheet1
 
+# worksheet.acell('B1').value : # セルB1の値を取得
+
+def now_check():
+    print("now_check開始")
+
+    pay_s = worksheet.acell('F2').value
+    pay_k = worksheet.acell('F3').value
+
+    payer = worksheet.acell('F6').value
+    pay = worksheet.acell('F5').value
+
+    sentence = f"現在の精算状況\n\nそうた: {pay_s}円\nこはく: {pay_k}円\n{payer} が {pay}円 を支払う"
+
+    return sentence
+
+
+
 def monthcheck():
     print("monthcheck開始")
 
@@ -67,15 +84,15 @@ def monthcheck():
         newsheet.update('B1', [['名目']])
         newsheet.update('C1', [['支出']])
         newsheet.update('D1', [['支払者']])
-        newsheet.update('F1', [['そうた']])
-        newsheet.update('F2', [['こはく']])
-        newsheet.update('F3', [['差額']])
-        newsheet.update('F4', [['精算額']])
-        newsheet.update('G1', [['合計']])
-        newsheet.update("G2", '=SUMIF(D:D,"そうた",C:C)')
-        newsheet.update("G3", '=SUMIF(D:D,"こはく",C:C)')
-        newsheet.update("G4", "=G2-G3")
-        newsheet.update("G5", "=ABS(G4)/2")
+        newsheet.update('E1', [['そうた']])
+        newsheet.update('E2', [['こはく']])
+        newsheet.update('E3', [['差額']])
+        newsheet.update('E4', [['精算額']])
+        newsheet.update('F1', [['合計']])
+        newsheet.update("F2", '=SUMIF(D:D,"そうた",C:C)')
+        newsheet.update("F3", '=SUMIF(D:D,"こはく",C:C)')
+        newsheet.update("F4", "=F2-F3")
+        newsheet.update("F5", "=ABS(F4)/2")
 
     print("worksheet取得:", today)
 
@@ -97,6 +114,9 @@ async def on_message(message):          #メッセージを受け取ったとき
 
     if message.author.bot :             #拾ったメッセージがBotからのメッセージだったら(=Bot自身の発言だったら弾く)
         return
+
+    if message.content == '支払' or message.content == '支払い' or message.content == 'しはらい':
+        return now_check()
 
     worksheet = monthcheck()
 
@@ -132,6 +152,7 @@ async def on_message(message):          #メッセージを受け取ったとき
 
     name = receipt[0]
     user = message.author.display_name
+
     if len(receipt) == 3:
         user = receipt[2]
 
