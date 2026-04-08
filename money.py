@@ -42,20 +42,18 @@ worksheet = workbook.sheet1
 
 # worksheet.acell('B1').value : # セルB1の値を取得
 
-def now_check():
+def now_check(checksheet):
     print("now_check開始")
 
-    pay_s = worksheet.acell('F2').value
-    pay_k = worksheet.acell('F3').value
+    pay_s = checksheet.acell('F2').value
+    pay_k = checksheet.acell('F3').value
 
-    payer = worksheet.acell('F6').value
-    pay = worksheet.acell('F5').value
+    payer = checksheet.acell('F6').value
+    pay = checksheet.acell('F5').value
 
     sentence = f"現在の精算状況\n\nそうた: {pay_s}円\nこはく: {pay_k}円\n{payer} が {pay}円 を支払う"
 
     return sentence
-
-
 
 def monthcheck():
     print("monthcheck開始")
@@ -114,12 +112,12 @@ async def on_message(message):          #メッセージを受け取ったとき
 
     if message.author.bot :             #拾ったメッセージがBotからのメッセージだったら(=Bot自身の発言だったら弾く)
         return
+    
+    worksheet = monthcheck()
 
     if message.content == '支払' or message.content == '支払い' or message.content == 'しはらい':
         await message.channel.send(now_check())
         return 
-
-    worksheet = monthcheck()
 
     # -----------------------------
     # 支出入力処理
