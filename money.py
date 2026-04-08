@@ -51,7 +51,7 @@ def now_check(checksheet):
     payer = checksheet.acell('F6').value
     pay = checksheet.acell('F5').value
 
-    sentence = f"現在の精算状況\n\nそうた: {pay_s}円\nこはく: {pay_k}円\n{payer} が {pay}円 を支払う"
+    sentence = f"現在の支払状況\n\nそうた: {pay_s}円\nこはく: {pay_k}円\n\n清算: {payer} が {pay}円 を支払う"
 
     return sentence
 
@@ -89,8 +89,15 @@ def monthcheck():
         newsheet.update('F1', [['合計']])
         newsheet.update("F2", '=SUMIF(D:D,"そうた",C:C)')
         newsheet.update("F3", '=SUMIF(D:D,"こはく",C:C)')
-        newsheet.update("F4", "=F2-F3")
-        newsheet.update("F5", "=ABS(F4)/2")
+        newsheet.update("F4", "=ABS(F2-F3)/2")
+        newsheet.update("F5", "=F4 - F10")
+        newsheet.update("F6", '=IF(F5 <> 0, IF(F5 > 0, E2,E3), "なし")')
+        newsheet.update("F5", "=F4 - F10")
+        newsheet.update("E8", "そうただけ（こはくのかし）")
+        newsheet.update("E9", "こはくだけ(そうたのかし)")
+        newsheet.update("F8", '=SUMIF(D:D, "そうただけ", C:C)')
+        newsheet.update("F9", '=SUMIF(D:D, "こはくだけ", C:C)')
+        newsheet.update("F10", '=F9 - F8')
 
     print("worksheet取得:", today)
 
@@ -155,16 +162,24 @@ async def on_message(message):          #メッセージを受け取ったとき
     if len(receipt) == 3:
         user = receipt[2]
 
-    add_spending(
-        worksheet,
-        name,
-        amount,
-        user
-    )
+        if user in ['そうただけ', 'こはくだけ']:
+            # 完了メッセージ
+            await message.channel.send(
+                f'{user} の {name} の支出 {amount}円 を記録しました。'
+            )
+        
+        else :
+            add_spending(
+                worksheet,
+                name,
+                amount,
+                user
+            )
 
-    await message.channel.send(
-        f'{user} による {name} の支出 {amount}円 を記録しました。'
-    )
+            # 完了メッセージ
+            await message.channel.send(
+                f'{user} による {name} の支出 {amount}円 を記録しました。'
+            )
 
     return
 
