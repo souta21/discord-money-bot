@@ -83,10 +83,7 @@ def monthcheck():
             "支払者"
         ]]
 
-        newsheet.update("A1", headers)
-
-        setup_summary(newsheet)
-        setup_formula(newsheet)
+        newsheet.update(headers, "A1")
 
     print("worksheet取得:", today)
 
@@ -157,7 +154,7 @@ async def on_message(message):          #メッセージを受け取ったとき
     payer = message.author.display_name
     worksheet = monthcheck()
 
-    if message.content == '支払' or message.content == '支払い' or message.content == 'しはらい':
+    if message.content in ['支払', '支払い', 'しはらい']:
         await message.channel.send(now_check(worksheet))
         return 
 
@@ -173,7 +170,6 @@ async def on_message(message):          #メッセージを受け取ったとき
         return
 
     item, sota, kohaku, total = result
-
 
     add_expense(
         worksheet,
