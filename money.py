@@ -116,7 +116,7 @@ async def on_message(message):          #メッセージを受け取ったとき
     worksheet = monthcheck()
 
     if message.content == '支払' or message.content == '支払い' or message.content == 'しはらい':
-        await message.channel.send(now_check())
+        await message.channel.send(now_check(worksheet))
         return 
 
     # -----------------------------
