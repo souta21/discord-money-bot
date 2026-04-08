@@ -85,6 +85,9 @@ def monthcheck():
 
         newsheet.update("A1", headers)
 
+        setup_summary(newsheet)
+        setup_formula(newsheet)
+
     print("worksheet取得:", today)
 
     return workbook.worksheet(today)
@@ -114,6 +117,25 @@ def setup_summary(sheet):
     ]
 
     sheet.update("H1:I6", formulas)
+
+def setup_formula(sheet):
+
+    formulas = [
+
+        # 実際支払額
+        ["=SUMIF(F:F,\"そうた\",E:E)"],
+        ["=SUMIF(F:F,\"こはく\",E:E)"],
+
+        # 負担額
+        ["=SUM(C:C)"],
+        ["=SUM(D:D)"],
+
+        # 清算額
+        ["=H2-H4"]
+
+    ]
+
+    sheet.update("J2:J6", formulas)
 
 def add_expense(worksheet, item, sota, kohaku, total, payer):
 
@@ -203,7 +225,6 @@ async def on_message(message):          #メッセージを受け取ったとき
     )
 
     # 入力形式チェック
-
     # 円を削除（例: 1200円 → 1200）
     receipt[1] = receipt[1].replace('円', '')
 
@@ -228,6 +249,10 @@ async def on_message(message):          #メッセージを受け取ったとき
             await message.channel.send(
                 f'{user} による {name} の支出 {amount}円 を記録しました。'
             )
+
+    await message.channel.send(
+        f'{payer} による {item} の支出 {total}円 を記録しました。'
+    )
 
     return
 
