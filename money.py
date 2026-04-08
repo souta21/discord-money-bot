@@ -92,51 +92,6 @@ def monthcheck():
 
     return workbook.worksheet(today)
 
-def setup_summary(sheet):
-
-    formulas = [
-
-        ["そうた負担合計",
-        "=SUM(C2:C)"],
-
-        ["こはく負担合計",
-        "=SUM(D2:D)"],
-
-        ["そうた支払合計",
-        '=SUMIF(F:F,"そうた",E:E)'],
-
-        ["こはく支払合計",
-        '=SUMIF(F:F,"こはく",E:E)'],
-
-        ["そうた清算額",
-        "=H4-H2"],
-
-        ["こはく清算額",
-        "=H5-H3"]
-
-    ]
-
-    sheet.update("H1:I6", formulas)
-
-def setup_formula(sheet):
-
-    formulas = [
-
-        # 実際支払額
-        ["=SUMIF(F:F,\"そうた\",E:E)"],
-        ["=SUMIF(F:F,\"こはく\",E:E)"],
-
-        # 負担額
-        ["=SUM(C:C)"],
-        ["=SUM(D:D)"],
-
-        # 清算額
-        ["=H2-H4"]
-
-    ]
-
-    sheet.update("J2:J6", formulas)
-
 def add_expense(worksheet, item, sota, kohaku, total, payer):
 
     today = datetime.date.today()
@@ -163,7 +118,9 @@ def parse_input(text, payer):
         # 均等負担
 
         item = parts[0]
-        total = int(parts[1])
+
+        pay_total = parts[1].replace('円', '')
+        total = int(pay_total)
 
         half = total // 2
 
@@ -175,7 +132,6 @@ def parse_input(text, payer):
             kohaku = half
 
     elif len(parts) == 3:
-        # 個別負担
 
         item = parts[0]
 
@@ -211,9 +167,13 @@ async def on_message(message):          #メッセージを受け取ったとき
     )
 
     if result is None:
+        await message.channel.send(
+            "入力形式が正しくありません。\n\n例1: スーパー 1000(円)\n例2: 食費 500 500"
+        )
         return
 
     item, sota, kohaku, total = result
+
 
     add_expense(
         worksheet,
@@ -225,30 +185,6 @@ async def on_message(message):          #メッセージを受け取ったとき
     )
 
     # 入力形式チェック
-    # 円を削除（例: 1200円 → 1200）
-    receipt[1] = receipt[1].replace('円', '')
-
-    # 金額チェック
-    try:
-        amount = int(receipt[1])
-    except ValueError:
-        await message.channel.send(
-            '金額は数字で入力してください。'
-        )
-        return
-
-
-        if user in ['そうただけ', 'こはくだけ']:
-            # 完了メッセージ
-            await message.channel.send(
-                f'{user} の {name} の支出 {amount}円 を記録しました。'
-            )
-        
-        else :
-            # 完了メッセージ
-            await message.channel.send(
-                f'{user} による {name} の支出 {amount}円 を記録しました。'
-            )
 
     await message.channel.send(
         f'{payer} による {item} の支出 {total}円 を記録しました。'
