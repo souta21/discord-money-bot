@@ -99,14 +99,14 @@ def add_expense(worksheet, item, sota, kohaku, total, payer):
     # 次に書く行番号
     next_row = len(colA) + 1
 
-    row = [
+    row = [[
         str(today),
         item,
         sota,
         kohaku,
         total,
         payer
-    ]
+    ]]
 
     worksheet.update(row, f"A{next_row}")
 
