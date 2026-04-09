@@ -188,6 +188,7 @@ async def on_message(message):          #メッセージを受け取ったとき
 
     print("メッセージ受信:", message.content)
     print("チャンネル:", type(message.channel))
+    print("チャンネルID:", message.channel.id)
 
     if message.author.bot :             #拾ったメッセージがBotからのメッセージだったら(=Bot自身の発言だったら弾く)
         return
