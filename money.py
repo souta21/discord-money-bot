@@ -4,6 +4,7 @@ import datetime
 import re
 import os
 from dotenv import load_dotenv
+from gspread.worksheet import CellFormat
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -41,13 +42,11 @@ worksheet = workbook.sheet1
 def now_check(checksheet):
     print("now_check開始")
 
-    pay_s = checksheet.acell('F2').value
-    pay_k = checksheet.acell('F3').value
+    payer = checksheet.acell('I6').value
+    pay = checksheet.acell('H6').value
+    get_person = checksheet.acell('J6').value
 
-    payer = checksheet.acell('F6').value
-    pay = checksheet.acell('F5').value
-
-    sentence = f"現在の支払状況\n\nそうた: {pay_s}円\nこはく: {pay_k}円\n\n清算: {payer} が {pay}円 を支払う"
+    sentence = f"清算: {payer} が {get_person} に {pay}円 を支払う"
 
     return sentence
 
