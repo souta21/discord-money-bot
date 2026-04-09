@@ -8,7 +8,7 @@ from gspread.worksheet import CellFormat
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
-ALLOWED_CHANNEL_ID = os.getenv("ALLOWED_CHANNEL_ID")
+ALLOWED_CHANNEL_ID = int(os.getenv("ALLOWED_CHANNEL_ID"))
 credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
 if credentials_json:
