@@ -4,6 +4,7 @@ import datetime
 import re
 import os
 from dotenv import load_dotenv
+from gspread.worksheet import CellFormat
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
@@ -31,27 +32,21 @@ credentials = Credentials.from_service_account_file(
     "credentials.json",
     scopes=SCOPES
 )
-
 gc = gspread.authorize(credentials)
 
 # スプレッドシートを開く
 SPREADSHEET_KEY = os.getenv("SPREADSHEET_KEY")
 workbook = gc.open_by_key(SPREADSHEET_KEY)
-
 worksheet = workbook.sheet1
-
-# worksheet.acell('B1').value : # セルB1の値を取得
 
 def now_check(checksheet):
     print("now_check開始")
 
-    pay_s = checksheet.acell('F2').value
-    pay_k = checksheet.acell('F3').value
+    payer = checksheet.acell('I6').value
+    pay = checksheet.acell('K6').value
+    get_person = checksheet.acell('J6').value
 
-    payer = checksheet.acell('F6').value
-    pay = checksheet.acell('F5').value
-
-    sentence = f"現在の支払状況\n\nそうた: {pay_s}円\nこはく: {pay_k}円\n\n清算: {payer} が {pay}円 を支払う"
+    sentence = f"清算: {payer} が {get_person} に {pay}円 を支払う"
 
     return sentence
 
@@ -73,43 +68,93 @@ def monthcheck():
         workbook.add_worksheet(
             title=today,
             rows=100,
-            cols=7
+            cols=10
         )
 
         newsheet = workbook.worksheet(today)
 
-        newsheet.update('A1', [['日付']])
-        newsheet.update('B1', [['名目']])
-        newsheet.update('C1', [['支出']])
-        newsheet.update('D1', [['支払者']])
-        newsheet.update('E1', [['そうた']])
-        newsheet.update('E2', [['こはく']])
-        newsheet.update('E3', [['差額']])
-        newsheet.update('E4', [['精算額']])
-        newsheet.update('F1', [['合計']])
-        newsheet.update("F2", '=SUMIF(D:D,"そうた",C:C)')
-        newsheet.update("F3", '=SUMIF(D:D,"こはく",C:C)')
-        newsheet.update("F4", "=ABS(F2-F3)/2")
-        newsheet.update("F5", "=F4 - F10")
-        newsheet.update("F6", '=IF(F5 <> 0, IF(F5 > 0, E2,E3), "なし")')
-        newsheet.update("F5", "=F4 - F10")
-        newsheet.update("E8", "そうただけ（こはくのかし）")
-        newsheet.update("E9", "こはくだけ(そうたのかし)")
-        newsheet.update("F8", '=SUMIF(D:D, "そうただけ", C:C)')
-        newsheet.update("F9", '=SUMIF(D:D, "こはくだけ", C:C)')
-        newsheet.update("F10", '=F9 - F8')
+        headers = [[
+            "日付",
+            "名目",
+            "そうた負担",
+            "こはく負担",
+            "支払総額",
+            "支払者"
+        ]]
+
+        newsheet.update(headers, "A1")
+        newsheet.update(functions_list, "H1", value_input_option="USER_ENTERED")
 
     print("worksheet取得:", today)
 
     return workbook.worksheet(today)
 
-def add_spending(worksheet, name, amount,user):#引数で受け取ったシートに引数で受け取った支出を記録する関数
-    lists = worksheet.get_all_values()  #シートの内容を配列で取得
-    rows = len(lists) + 1               #入力されているデータの数を取得し、末端に書き込むときのインデックスとして利用する為+1する
-    worksheet.update_cell(rows,1,datetime.date.today().strftime('%Y/%m/%d'))  #日付をセルに入力
-    worksheet.update_cell(rows,2,name)  #引数で受け取った名前をセルに入力
-    worksheet.update_cell(rows,3,amount)#引数で受け取った金額をセルに入力
-    worksheet.update_cell(rows,4,user)#記入者の名前を入力
+def add_expense(worksheet, item, sota, kohaku, total, payer):
+
+    today = datetime.date.today()
+
+    # A列の値を全部取得
+    colA = worksheet.col_values(1)
+
+    # 次に書く行番号
+    next_row = len(colA) + 1
+
+    row = [[
+        str(today),
+        item,
+        sota,
+        kohaku,
+        total,
+        payer
+    ]]
+
+    worksheet.update(row, f"A{next_row}")
+
+user_list = ["そうた", "こはく"]
+functions_list = [
+    ["", "支払合計", "負担合計", "さ"],
+    ["そうた",'=SUMIF(F:F,"そうた",E:E)', '=SUM(C:C)', '=I2-J2'],
+    ["こはく",'=SUMIF(F:F,"こはく",E:E)', '=SUM(D:D)', '=I3-J3'],
+    ["","","",""],
+    ["","はらうひと","もらうひと","金額"],
+    ["",'=IF(K2<K3,"そうた","こはく")','=IF(K2>K3,"そうた","こはく")',"=ABS(K3)"]
+]
+
+def parse_input(text, payer):
+
+    # 全角スペース対応
+    parts = re.split(r"[ 　]+", text)
+
+    if len(parts) == 2:
+        # 均等負担
+
+        item = parts[0]
+
+        pay_total = parts[1].replace('円', '')
+        total = int(pay_total)
+
+        half = total // 2
+
+        if payer == "そうた":
+            sota = half
+            kohaku = total - half
+        else:
+            sota = total - half
+            kohaku = half
+
+    elif len(parts) == 3:
+
+        item = parts[0]
+
+        sota = int(parts[1])
+        kohaku = int(parts[2])
+
+        total = sota + kohaku
+
+    else:
+        return None
+
+    return item, sota, kohaku, total
 
 @client.event
 async def on_message(message):          #メッセージを受け取ったときの挙動
@@ -120,66 +165,40 @@ async def on_message(message):          #メッセージを受け取ったとき
     if message.author.bot :             #拾ったメッセージがBotからのメッセージだったら(=Bot自身の発言だったら弾く)
         return
     
+    payer = message.author.display_name
     worksheet = monthcheck()
 
-    if message.content == '支払' or message.content == '支払い' or message.content == 'しはらい':
+    if message.content in ['支払', '支払い', 'しはらい']:
         await message.channel.send(now_check(worksheet))
         return 
 
-    # -----------------------------
-    # 支出入力処理
-    # 形式: 支出,昼食,1200
-    # -----------------------------
+    result = parse_input(
+        message.content,
+        payer
+    )
 
-    receipt = re.split(r'[,\s]+', message.content.strip())
+    if result is None:
+        await message.channel.send(
+            "入力形式が正しくありません。\n\n例1: スーパー 1000(円)\n例2: 食費 500 500"
+        )
+        return
+
+    item, sota, kohaku, total = result
+
+    add_expense(
+        worksheet,
+        item,
+        sota,
+        kohaku,
+        total,
+        payer
+    )
 
     # 入力形式チェック
-    if len(receipt) < 1 or len(receipt) > 3:
-        await message.channel.send(
-            '入力形式が違います。\n例: 支出,昼食,1200'
-        )
-        return
 
-    # 円を削除（例: 1200円 → 1200）
-    receipt[1] = receipt[1].replace('円', '')
-
-    # 金額チェック
-    try:
-        amount = int(receipt[1])
-    except ValueError:
-        await message.channel.send(
-            '金額は数字で入力してください。'
-        )
-        return
-
-    # -----------------------------
-    # 支出処理
-    # -----------------------------
-
-    name = receipt[0]
-    user = message.author.display_name
-
-    if len(receipt) == 3:
-        user = receipt[2]
-
-        add_spending(
-                worksheet,
-                name,
-                amount,
-                user
-            )
-
-        if user in ['そうただけ', 'こはくだけ']:
-            # 完了メッセージ
-            await message.channel.send(
-                f'{user} の {name} の支出 {amount}円 を記録しました。'
-            )
-        
-        else :
-            # 完了メッセージ
-            await message.channel.send(
-                f'{user} による {name} の支出 {amount}円 を記録しました。'
-            )
+    await message.channel.send(
+        f'{payer} による {item} の支出 {total}円 を記録しました。'
+    )
 
     return
 
