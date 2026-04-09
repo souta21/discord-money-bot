@@ -8,6 +8,7 @@ from gspread.worksheet import CellFormat
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+ALLOWED_CHANNEL_ID = os.getenv("ALLOWED_CHANNEL_ID")
 credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
 if credentials_json:
@@ -190,6 +191,10 @@ async def on_message(message):          #メッセージを受け取ったとき
 
     if message.author.bot :             #拾ったメッセージがBotからのメッセージだったら(=Bot自身の発言だったら弾く)
         return
+
+    # 指定チャンネル以外は無視
+    if message.channel.id != ALLOWED_CHANNEL_ID:
+        return
     
     payer = message.author.display_name
     worksheet = monthcheck()
@@ -225,8 +230,6 @@ async def on_message(message):          #メッセージを受け取ったとき
         total,
         payer
     )
-
-    # 入力形式チェック
 
     await message.channel.send(
         f'{payer} による {item} の支出 {total}円 を記録しました。'
