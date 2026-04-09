@@ -43,7 +43,7 @@ def now_check(checksheet):
     print("now_check開始")
 
     payer = checksheet.acell('I6').value
-    pay = checksheet.acell('H6').value
+    pay = checksheet.acell('K6').value
     get_person = checksheet.acell('J6').value
 
     sentence = f"清算: {payer} が {get_person} に {pay}円 を支払う"
