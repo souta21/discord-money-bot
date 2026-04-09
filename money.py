@@ -8,6 +8,7 @@ from gspread.worksheet import CellFormat
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
+ALLOWED_CHANNEL_ID = int(os.getenv("ALLOWED_CHANNEL_ID"))
 credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
 
 if credentials_json:
@@ -156,21 +157,59 @@ def parse_input(text, payer):
 
     return item, sota, kohaku, total
 
+def cancel_last_expense(worksheet):
+
+    # A列のデータ取得（A1はヘッダー）
+    colA = worksheet.col_values(1)
+
+    # ヘッダーしかない場合
+    if len(colA) <= 1:
+        return "取り消せる支出がありません。"
+
+    # 最後のデータ行
+    last_row = len(colA)
+
+    row = worksheet.row_values(last_row)
+
+    # 内容取り出し
+    item = row[1]
+    total = row[4]
+    payer = row[5]
+
+    # 最終行削除　A〜Fだけ空にする
+    worksheet.batch_clear([
+        f"A{last_row}:F{last_row}"
+    ])
+
+    return f"{payer} の {item} {total}円 の入力を取り消しました。"
+
 @client.event
 async def on_message(message):          #メッセージを受け取ったときの挙動
 
     print("メッセージ受信:", message.content)
     print("チャンネル:", type(message.channel))
+    print("チャンネルID:", message.channel.id)
+    print("許可されたチャンネルID:", ALLOWED_CHANNEL_ID)
 
     if message.author.bot :             #拾ったメッセージがBotからのメッセージだったら(=Bot自身の発言だったら弾く)
+        return
+
+    # 指定チャンネル以外は無視
+    if message.channel.id != ALLOWED_CHANNEL_ID:
         return
     
     payer = message.author.display_name
     worksheet = monthcheck()
 
+    if message.content in ['取り消し', '取消', 'とりけし']:
+        msg = cancel_last_expense(worksheet)
+        await message.channel.send(msg)
+        return
+    
     if message.content in ['支払', '支払い', 'しはらい']:
-        await message.channel.send(now_check(worksheet))
-        return 
+        msg = now_check(worksheet)
+        await message.channel.send(msg)
+        return
 
     result = parse_input(
         message.content,
@@ -193,8 +232,6 @@ async def on_message(message):          #メッセージを受け取ったとき
         total,
         payer
     )
-
-    # 入力形式チェック
 
     await message.channel.send(
         f'{payer} による {item} の支出 {total}円 を記録しました。'
