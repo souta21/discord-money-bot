@@ -93,6 +93,12 @@ def add_expense(worksheet, item, sota, kohaku, total, payer):
 
     today = datetime.date.today()
 
+    # A列の値を全部取得
+    colA = worksheet.col_values(1)
+
+    # 次に書く行番号
+    next_row = len(colA) + 1
+
     row = [
         str(today),
         item,
@@ -102,7 +108,7 @@ def add_expense(worksheet, item, sota, kohaku, total, payer):
         payer
     ]
 
-    worksheet.append_row(row)
+    worksheet.update(row, f"A{next_row}")
 
 user_list = ["そうた", "こはく"]
 
