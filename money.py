@@ -84,6 +84,7 @@ def monthcheck():
         ]]
 
         newsheet.update(headers, "A1")
+        newsheet.update(functions_list, "H1", value_input_option="USER_ENTERED")
 
     print("worksheet取得:", today)
 
@@ -111,6 +112,14 @@ def add_expense(worksheet, item, sota, kohaku, total, payer):
     worksheet.update(row, f"A{next_row}")
 
 user_list = ["そうた", "こはく"]
+functions_list = [
+    ["", "支払合計", "負担合計", "さ"],
+    ["そうた",'=SUMIF(F:F,"そうた",E:E)', '=SUM(C:C)', '=I2-J2'],
+    ["こはく",'=SUMIF(F:F,"こはく",E:E)', '=SUM(D:D)', '=I3-J3'],
+    ["","","",""],
+    ["","はらうひと","もらうひと","金額"],
+    ["",'=IF(K2<K3,"そうた","こはく")','=IF(K2>K3,"そうた","こはく")',"=ABS(K3)"]
+]
 
 def parse_input(text, payer):
 
