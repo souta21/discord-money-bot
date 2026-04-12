@@ -1,3 +1,5 @@
+import random
+
 import discord
 import gspread
 import datetime
@@ -233,8 +235,14 @@ async def on_message(message):          #メッセージを受け取ったとき
         payer
     )
 
+    messages = [
+    f"{payer} による {item} の支出 {total}円 を記録しました！",
+    f"{payer} による {item} の支出 {total}円 を記録しましたよ",
+    f"【閣議決定】{payer} の {item} {total}円 を承認しました。",
+    f"【受理】{payer} による {item} {total}円 を登録しました。",
+    ]
     await message.channel.send(
-        f'{payer} による {item} の支出 {total}円 を記録しました。'
+        random.choice(messages)
     )
 
     return
