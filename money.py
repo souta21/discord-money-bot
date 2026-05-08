@@ -1,15 +1,18 @@
 import discord
 import gspread
 import datetime
-import re
-import os
+import re,os,random
+import pytz
 from dotenv import load_dotenv
 from gspread.worksheet import CellFormat
+from discord.ext import tasks
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
 ALLOWED_CHANNEL_ID = int(os.getenv("ALLOWED_CHANNEL_ID"))
 credentials_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
+
+JST = pytz.timezone("Asia/Tokyo")
 
 if credentials_json:
     with open("credentials.json", "w") as f:
@@ -183,7 +186,48 @@ def cancel_last_expense(worksheet):
 
     return f"{payer} の {item} {total}円 の入力を取り消しました。"
 
+def get_last_month_sheet():
+
+    today = datetime.date.today()
+    first_day = today.replace(day=1)
+    last_month_last_day = first_day - datetime.timedelta(days=1)
+    last_month = last_month_last_day.strftime('%Y%m')
+
+    try:
+        return workbook.worksheet(last_month)
+
+    except:
+        return None
+
+
+@tasks.loop(time=datetime.time(hour=9, minute=0, tzinfo=JST),day=1)
+async def monthly_reminder():
+
+    now = datetime.datetime.now()
+    if now.day != 1:
+        return
+
+    sheet = get_last_month_sheet()
+    if sheet is None:
+        return
+
+    sentence = now_check(sheet)
+    channel = client.get_channel(ALLOWED_CHANNEL_ID)
+
+    if channel:
+        await channel.send(
+            "📢 月初リマインド\n\n"
+            "先月分の清算をしましょう！\n\n"
+            f"{sentence}"
+        )
+
 @client.event
+async def on_ready():
+
+    print("Bot起動完了")
+
+    monthly_reminder.start()
+
 async def on_message(message):          #メッセージを受け取ったときの挙動
 
     print("メッセージ受信:", message.content)
@@ -233,8 +277,16 @@ async def on_message(message):          #メッセージを受け取ったとき
         payer
     )
 
+    messages = [
+    f"{payer} による {item} の支出 {total}円 を記録しました！",
+    f"{payer} による {item} の支出 {total}円 を記録しましたよ",
+    f"【閣議決定】{payer} の {item} {total}円 を承認しました。",
+    f"【速報】{payer} による {item} {total}円 を登録しました。",
+    f"{payer} の {item} {total}円、ちゃんときろくしたます！",
+    f"{payer} の {item} {total}円… 真実は いつも記録!!",
+    ]
     await message.channel.send(
-        f'{payer} による {item} の支出 {total}円 を記録しました。'
+        random.choice(messages)
     )
 
     return
