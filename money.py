@@ -6,7 +6,6 @@ import datetime
 import re
 import os
 from dotenv import load_dotenv
-from gspread.worksheet import CellFormat
 load_dotenv()
 
 TOKEN = os.getenv("DISCORD_TOKEN")
